@@ -43,7 +43,7 @@
             <tr th:each="order : ${orders}">
               <td th:text="${order.id}">123</td>
               <td>
-                <a th:href="@{/admin/users/{id}(id=${order.user.id})}"
+                <a th:href="@{/users/{id}(id=${order.user.id})}"
                    th:text="${order.user.username}"
                    class="text-decoration-none">
                   username

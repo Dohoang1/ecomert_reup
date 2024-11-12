@@ -42,6 +42,9 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**", "/error").permitAll()
                         // Chỉ admin mới có quyền truy cập
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        .requestMatchers("/users/**").permitAll()
+
                         // Chỉ admin mới có quyền thêm/sửa/xóa sản phẩm
                         .requestMatchers(
                                 "/products/create",

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
       layout:decorate="~{layout/layout}">
 <head>
     <title>User Detail</title>
@@ -11,7 +12,11 @@
         <!-- Breadcrumb -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/admin/users">Users</a></li>
+                <li class="breadcrumb-item">
+                    <a th:href="${isAdminView ? '/admin/users' : '/'}">
+                        <span th:text="${isAdminView ? 'Users' : 'Home'}">Users</span>
+                    </a>
+                </li>
                 <li class="breadcrumb-item active" th:text="${user.username}">Username</li>
             </ol>
         </nav>
@@ -20,8 +25,21 @@
         <div class="row">
             <div class="col-md-4">
                 <div class="card mb-4">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">User Information</h5>
+                        <!-- Admin Actions -->
+                        <div th:if="${isAdminView}" class="btn-group">
+                            <a th:href="@{/admin/users/edit/{id}(id=${user.id})}"
+                               class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button"
+                                    class="btn btn-sm btn-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteModal">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <table class="table table-borderless">
@@ -88,7 +106,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a th:href="@{/admin/orders/{id}(id=${order.id})}"
+                                        <a th:href="${isAdminView ? '/admin/orders/' + order.id : '/orders/' + order.id}"
                                            class="btn btn-sm btn-primary">
                                             <i class="fas fa-eye"></i> View
                                         </a>
@@ -98,6 +116,27 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal - Chỉ hiển thị cho admin -->
+    <div th:if="${isAdminView}" class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this user?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form th:action="@{/admin/users/delete/{id}(id=${user.id})}" method="post">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
                 </div>
             </div>
         </div>

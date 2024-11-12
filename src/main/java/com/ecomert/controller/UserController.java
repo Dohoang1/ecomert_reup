@@ -23,11 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Controller
-@RequestMapping("/admin/users")
-@PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
     @Autowired
@@ -39,7 +36,10 @@ public class UserController {
     @Autowired
     private OrderService orderService;
 
-    @GetMapping("")
+
+    // ADMIN ENDPOINTS
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/users")
     public ModelAndView listUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "id") String sortField,
@@ -71,15 +71,18 @@ public class UserController {
         return modelAndView;
     }
 
-    @GetMapping("/create")
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/users/create")
     public ModelAndView showCreateForm() {
         ModelAndView modelAndView = new ModelAndView("admin/users/form");
         modelAndView.addObject("user", new User());
-        modelAndView.addObject("roles", new String[]{"ROLE_USER", "ROLE_ADMIN"}); // Available roles
+        modelAndView.addObject("roles", new String[]{"ROLE_USER", "ROLE_ADMIN"});
         return modelAndView;
     }
 
-    @PostMapping("/create")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/admin/users/create")
     public String createUser(@Valid @ModelAttribute User user,
                              BindingResult result,
                              Model model) {
@@ -89,14 +92,10 @@ public class UserController {
         }
 
         try {
-            // Mã hóa password trước khi lưu
             user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-            // Đảm bảo role có prefix ROLE_
             if (!user.getRole().startsWith("ROLE_")) {
                 user.setRole("ROLE_" + user.getRole());
             }
-
             userService.save(user);
             return "redirect:/admin/users?success=User created successfully";
         } catch (Exception e) {
@@ -106,18 +105,20 @@ public class UserController {
         }
     }
 
-    @GetMapping("/edit/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/users/edit/{id}")
     public ModelAndView showEditForm(@PathVariable Long id) {
         ModelAndView modelAndView = new ModelAndView("admin/users/form");
         User user = userService.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         modelAndView.addObject("user", user);
-        modelAndView.addObject("roles", new String[]{"ROLE_USER", "ROLE_ADMIN"}); // Available roles
+        modelAndView.addObject("roles", new String[]{"ROLE_USER", "ROLE_ADMIN"});
         return modelAndView;
     }
 
-    @PostMapping("/edit/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/admin/users/edit/{id}")
     public String updateUser(@PathVariable Long id,
                              @Valid @ModelAttribute User user,
                              BindingResult result,
@@ -131,22 +132,18 @@ public class UserController {
             User existingUser = userService.findById(id)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Cập nhật thông tin
             existingUser.setUsername(user.getUsername());
             existingUser.setEmail(user.getEmail());
 
-            // Chỉ cập nhật password nếu có nhập password mới
             if (user.getPassword() != null && !user.getPassword().isEmpty()) {
                 existingUser.setPassword(passwordEncoder.encode(user.getPassword()));
             }
 
-            // Đảm bảo role có prefix ROLE_
             String role = user.getRole();
             if (!role.startsWith("ROLE_")) {
                 role = "ROLE_" + role;
             }
             existingUser.setRole(role);
-
             existingUser.setEnabled(user.isEnabled());
 
             userService.save(existingUser);
@@ -158,19 +155,21 @@ public class UserController {
         }
     }
 
-    @PostMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/admin/users/delete/{id}")
     public String deleteUser(@PathVariable Long id) {
         userService.deleteById(id);
         return "redirect:/admin/users?success=User deleted successfully";
     }
 
-    @GetMapping("/{id}")
-    public String getUserDetail(@PathVariable Long id, Model model) {
-        // Lấy thông tin user
+
+    // Public endpoint
+    @GetMapping("/users/{id}")
+    public String getPublicUserDetail(@PathVariable Long id, Model model) {
         User user = userService.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Lấy danh sách đơn hàng
+        // Lấy danh sách orders của user
         List<Order> orders = orderService.findByUser(user);
 
         // Tính toán thống kê
@@ -183,11 +182,38 @@ public class UserController {
                 .mapToDouble(Order::getTotalAmount)
                 .sum();
 
-        // Thêm vào model
         model.addAttribute("user", user);
         model.addAttribute("orders", orders);
         model.addAttribute("totalItems", totalItems);
         model.addAttribute("totalSpent", totalSpent);
+        model.addAttribute("isAdminView", false);
+
+        return "admin/users/detail";
+    }
+
+    // Admin endpoint
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/users/detail/{id}")
+    public String getAdminUserDetail(@PathVariable Long id, Model model) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<Order> orders = orderService.findByUser(user);
+
+        long totalItems = orders.stream()
+                .flatMap(order -> order.getItems().stream())
+                .mapToLong(OrderItem::getQuantity)
+                .sum();
+
+        double totalSpent = orders.stream()
+                .mapToDouble(Order::getTotalAmount)
+                .sum();
+
+        model.addAttribute("user", user);
+        model.addAttribute("orders", orders);
+        model.addAttribute("totalItems", totalItems);
+        model.addAttribute("totalSpent", totalSpent);
+        model.addAttribute("isAdminView", true);
 
         return "admin/users/detail";
     }
