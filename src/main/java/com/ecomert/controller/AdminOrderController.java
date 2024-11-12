@@ -53,14 +53,6 @@ public class AdminOrderController {
         return "admin/orders/list";
     }
 
-    @GetMapping("/{id}")
-    public String viewOrder(@PathVariable Long id, Model model) {
-        Order order = orderService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        model.addAttribute("order", order);
-        return "admin/orders/detail";
-    }
-
     @PostMapping("/{id}/ship")
     public String shipOrder(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
@@ -81,5 +73,15 @@ public class AdminOrderController {
             redirectAttributes.addFlashAttribute("errorMessage", "Error cancelling order: " + e.getMessage());
         }
         return "redirect:/admin/orders";
+    }
+
+    @GetMapping("/{id}")
+    public String viewOrder(@PathVariable Long id, Model model) {
+        Order order = orderService.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        model.addAttribute("order", order);
+        model.addAttribute("isUserView", false);
+        return "admin/orders/detail";
     }
 }

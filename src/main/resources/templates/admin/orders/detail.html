@@ -8,9 +8,16 @@
 <body>
 <div layout:fragment="content">
   <div class="container mt-5">
+    <!-- Điều chỉnh breadcrumb dựa theo view -->
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/admin/orders">Orders</a></li>
+        <li class="breadcrumb-item" th:if="${!isUserView}">
+          <a href="/admin/orders">Orders</a>
+        </li>
+        <li class="breadcrumb-item" th:if="${isUserView}">
+          <!-- Thay đổi URL này -->
+          <a th:href="@{/users/__${order.user.id}__}">My Profile</a>
+        </li>
         <li class="breadcrumb-item active">Order #<span th:text="${order.id}"></span></li>
       </ol>
     </nav>
@@ -129,19 +136,33 @@
 
     <!-- Action Buttons -->
     <div class="mt-4">
-      <a href="/admin/orders" class="btn btn-secondary">
+      <!-- Back button for admin -->
+      <a th:if="${!isUserView}"
+         href="/admin/orders"
+         class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back to Orders
       </a>
-      <button th:if="${order.status.name() == 'PENDING'}"
-              class="btn btn-success"
-              th:onclick="'shipOrder(' + ${order.id} + ')'">
-        <i class="fas fa-truck"></i> Ship Order
-      </button>
-      <button th:if="${order.status.name() != 'DELIVERED' && order.status.name() != 'CANCELLED'}"
-              class="btn btn-danger"
-              th:onclick="'cancelOrder(' + ${order.id} + ')'">
-        <i class="fas fa-times"></i> Cancel Order
-      </button>
+
+      <!-- Back button for user -->
+      <a th:if="${isUserView}"
+         th:href="@{/users/__${order.user.id}__}"
+         class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to My Profile
+      </a>
+
+      <!-- Admin-only buttons -->
+      <th:block th:if="${!isUserView}">
+        <button th:if="${order.status.name() == 'PENDING'}"
+                class="btn btn-success"
+                th:onclick="'shipOrder(' + ${order.id} + ')'">
+          <i class="fas fa-truck"></i> Ship Order
+        </button>
+        <button th:if="${order.status.name() != 'DELIVERED' && order.status.name() != 'CANCELLED'}"
+                class="btn btn-danger"
+                th:onclick="'cancelOrder(' + ${order.id} + ')'">
+          <i class="fas fa-times"></i> Cancel Order
+        </button>
+      </th:block>
     </div>
   </div>
 </div>

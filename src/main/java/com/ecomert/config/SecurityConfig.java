@@ -43,7 +43,11 @@ public class SecurityConfig {
                         // Chỉ admin mới có quyền truy cập
                         .requestMatchers("/admin/**").hasRole("ADMIN")
 
+                        .requestMatchers("/orders/**").authenticated()
+
                         .requestMatchers("/users/**").authenticated()
+
+                        .requestMatchers("/users/profile").authenticated()
 
                         // Chỉ admin mới có quyền thêm/sửa/xóa sản phẩm
                         .requestMatchers(
