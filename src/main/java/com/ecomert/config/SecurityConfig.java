@@ -43,7 +43,7 @@ public class SecurityConfig {
                         // Chỉ admin mới có quyền truy cập
                         .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                        .requestMatchers("/users/**").permitAll()
+                        .requestMatchers("/users/**").authenticated()
 
                         // Chỉ admin mới có quyền thêm/sửa/xóa sản phẩm
                         .requestMatchers(
@@ -53,6 +53,8 @@ public class SecurityConfig {
                         ).hasRole("ADMIN")
                         // Cart yêu cầu đăng nhập
                         .requestMatchers("/cart/**").authenticated()
+
+
                         // Các request khác yêu cầu đăng nhập
                         .anyRequest().authenticated()
                 )

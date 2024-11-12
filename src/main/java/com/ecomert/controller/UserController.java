@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -22,6 +23,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.security.Principal;
 import java.util.List;
 
 @Controller
@@ -163,34 +165,6 @@ public class UserController {
     }
 
 
-    // Public endpoint
-    @GetMapping("/users/{id}")
-    public String getPublicUserDetail(@PathVariable Long id, Model model) {
-        User user = userService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        // Lấy danh sách orders của user
-        List<Order> orders = orderService.findByUser(user);
-
-        // Tính toán thống kê
-        long totalItems = orders.stream()
-                .flatMap(order -> order.getItems().stream())
-                .mapToLong(OrderItem::getQuantity)
-                .sum();
-
-        double totalSpent = orders.stream()
-                .mapToDouble(Order::getTotalAmount)
-                .sum();
-
-        model.addAttribute("user", user);
-        model.addAttribute("orders", orders);
-        model.addAttribute("totalItems", totalItems);
-        model.addAttribute("totalSpent", totalSpent);
-        model.addAttribute("isAdminView", false);
-
-        return "admin/users/detail";
-    }
-
     // Admin endpoint
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/users/detail/{id}")
@@ -214,6 +188,51 @@ public class UserController {
         model.addAttribute("totalItems", totalItems);
         model.addAttribute("totalSpent", totalSpent);
         model.addAttribute("isAdminView", true);
+
+        return "admin/users/detail";
+    }
+
+    @GetMapping("/users/{id}")
+    public String getUserDetail(@PathVariable Long id, Model model, Principal principal) {
+        // Lấy thông tin user được yêu cầu xem
+        User requestedUser = userService.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Lấy thông tin user đang đăng nhập
+        User currentUser = null;
+        if (principal != null) {
+            currentUser = userService.findByUsername(principal.getName())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        }
+
+        // Kiểm tra quyền truy cập
+        boolean isAdmin = currentUser != null && currentUser.getRole().equals("ROLE_ADMIN");
+        boolean isOwnProfile = currentUser != null && currentUser.getId().equals(requestedUser.getId());
+
+        // Chỉ cho phép xem nếu là admin hoặc đang xem profile của chính mình
+        if (!isAdmin && !isOwnProfile) {
+            throw new AccessDeniedException("Access denied");
+        }
+
+        // Lấy danh sách orders
+        List<Order> orders = orderService.findByUser(requestedUser);
+
+        // Tính toán thống kê
+        long totalItems = orders.stream()
+                .flatMap(order -> order.getItems().stream())
+                .mapToLong(OrderItem::getQuantity)
+                .sum();
+
+        double totalSpent = orders.stream()
+                .mapToDouble(Order::getTotalAmount)
+                .sum();
+
+        model.addAttribute("user", requestedUser);
+        model.addAttribute("orders", orders);
+        model.addAttribute("totalItems", totalItems);
+        model.addAttribute("totalSpent", totalSpent);
+        model.addAttribute("isAdminView", isAdmin);
+        model.addAttribute("isOwnProfile", isOwnProfile);
 
         return "admin/users/detail";
     }

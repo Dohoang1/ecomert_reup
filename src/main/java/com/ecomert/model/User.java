@@ -23,4 +23,5 @@ public class User {
     private String role = "ROLE_USER"; // Default role
 
     private boolean enabled = true;
+
 }

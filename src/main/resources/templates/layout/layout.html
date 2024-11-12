@@ -150,6 +150,13 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
 
+                        <li sec:authorize="hasRole('USER')">
+                            <a class="dropdown-item" th:href="@{/users/__${@userService.getCurrentUser().id}__}">
+                                <i class="fas fa-user fa-fw"></i> My Profile
+                            </a>
+                        </li>
+                        <li sec:authorize="hasRole('USER')"><hr class="dropdown-divider"></li>
+
                         <!-- Admin Only Menu Items -->
                         <li sec:authorize="hasRole('ADMIN')">
                             <a class="dropdown-item" href="/products/create">
