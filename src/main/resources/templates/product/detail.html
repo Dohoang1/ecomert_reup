@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      layout:decorate="~{layout/layout}">
+<head>
+    <title>Product Detail</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mt-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/products">Products</a></li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${product.name}">Product Name</li>
+            </ol>
+        </nav>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <!-- Product Image -->
+                    <div class="col-md-6">
+                        <div class="product-image-container">
+                            <img th:if="${product.imagePath}"
+                                 th:src="${product.imagePath}"
+                                 class="img-fluid rounded"
+                                 alt="Product Image">
+                            <img th:unless="${product.imagePath}"
+                                 src="/images/default-product.png"
+                                 class="img-fluid rounded"
+                                 alt="Default Product Image">
+                        </div>
+                    </div>
+
+                    <!-- Product Details -->
+                    <div class="col-md-6">
+                        <h2 class="mb-3" th:text="${product.name}">Product Name</h2>
+
+                        <!-- Description as table -->
+                        <table class="table table-striped specs-table">
+                            <tbody>
+                            <tr>
+                                <td class="specs-label">Brand</td>
+                                <td th:text="${product.brand}">Brand Name</td>
+                            </tr>
+                            <tr>
+                                <td class="specs-label">Price</td>
+                                <td class="text-primary fw-bold">
+                                    $<span th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 2, 'POINT')}">0.00</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="specs-label">Description</td>
+                                <td th:text="${product.description}">Product description goes here.</td>
+                            </tr>
+                            <tr>
+                                <td class="specs-label">Stock Status</td>
+                                <td>
+                                    <span th:if="${product.stock > 0}" class="badge bg-success">In Stock</span>
+                                    <span th:unless="${product.stock > 0}" class="badge bg-danger">Out of Stock</span>
+                                    <span class="ms-2" th:text="${product.stock + ' units available'}">0 units available</span>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="rating-section mt-4">
+                            <h4>Product Rating</h4>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="stars-display me-2">
+                                    <i th:each="i : ${#numbers.sequence(1, 5)}"
+                                       class="fas fa-star"
+                                       th:classappend="${i <= product.getAverageRating()} ? 'text-warning' : 'text-secondary'"></i>
+                                </div>
+                                <span class="h5 mb-0">
+            <span th:text="${#numbers.formatDecimal(product.getAverageRating(), 1, 1)}">0.0</span>/5
+            (<span th:text="${product.getRatingCount()}">0</span> ratings)
+        </span>
+                            </div>
+
+                            <!-- Rating Form -->
+                            <div sec:authorize="isAuthenticated()" class="rating-form">
+                                <h5>Rate this product</h5>
+                                <div class="stars-input mb-3">
+                                    <!-- Đảo ngược thứ tự các ngôi sao -->
+                                    <i th:each="i : ${#numbers.sequence(5, 1)}"
+                                       class="fas fa-star star-rating"
+                                       th:data-rating="${i}"
+                                       onclick="setRating(this)"></i>
+                                </div>
+                                <textarea id="ratingComment" class="form-control mb-2"
+                                          placeholder="Add a comment (optional)"></textarea>
+                                <button class="btn btn-primary" onclick="submitRating()">
+                                    Submit Rating
+                                </button>
+                            </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <!-- Add to Cart Button - Only show for authenticated users and if in stock -->
+                            <button sec:authorize="isAuthenticated()"
+                                    th:if="${product.stock > 0}"
+                                    class="btn btn-primary"
+                                    th:onclick="addToCart([[${product.id}]])">
+                                <i class="fas fa-cart-plus"></i> Add to Cart
+                            </button>
+
+                            <!-- Admin Buttons -->
+                            <div sec:authorize="hasRole('ADMIN')" class="d-flex gap-2">
+                                <a th:href="@{/products/edit/{id}(id=${product.id})}"
+                                   class="btn btn-warning">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <button class="btn btn-danger"
+                                        th:data-product-id="${product.id}"
+                                        onclick="setDeleteProductId(this.getAttribute('data-product-id'))"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this product?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteForm" method="post">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="scripts">
+    <script>
+        function setDeleteProductId(productId) {
+            const deleteForm = document.getElementById('deleteForm');
+            deleteForm.action = '/products/delete/' + productId;
+        }
+
+        function addToCart(productId) {
+            fetch(`/cart/add/${productId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('.cart-count').textContent = data.cartCount;
+                    // Show success message
+                    alert('Product added to cart successfully!');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error adding product to cart');
+                });
+        }
+        let currentRating = 0;
+
+        function setRating(star) {
+            const rating = parseInt(star.dataset.rating);
+            currentRating = rating;
+
+            // Update stars visual
+            const stars = document.querySelectorAll('.star-rating');
+            stars.forEach((s) => {
+                // Reset all stars first
+                s.classList.remove('active');
+            });
+
+            // Set active class for selected stars
+            stars.forEach((s) => {
+                const starRating = parseInt(s.dataset.rating);
+                if (starRating <= rating) {
+                    s.classList.add('active');
+                }
+            });
+        }
+
+        function submitRating() {
+            if (currentRating === 0) {
+                alert('Please select a rating');
+                return;
+            }
+
+            const comment = document.getElementById('ratingComment').value;
+            const productId = [[${product.id}]];
+
+            fetch(`/products/${productId}/rate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `score=${currentRating}&comment=${encodeURIComponent(comment)}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Error submitting rating');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error submitting rating');
+                });
+        }
+    </script>
+</th:block>
+
+<style>
+    .specs-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .specs-table td {
+        padding: 12px 15px;
+        vertical-align: top; /* Đổi từ middle sang top để căn trên khi xuống dòng */
+    }
+
+    .specs-label {
+        width: 150px;
+        font-weight: 500;
+        color: #333;
+        background-color: #f8f9fa;
+    }
+
+    /* Thêm style mới cho ô chứa description */
+    .specs-table td:last-child {
+        white-space: pre-line; /* Cho phép xuống dòng theo ký tự \n */
+        line-height: 1.6; /* Tăng khoảng cách giữa các dòng */
+    }
+
+    .specs-table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    .specs-table tr:hover {
+        background-color: #f5f5f5;
+    }
+    .stars-input {
+        display: inline-flex;
+        flex-direction: row-reverse; /* Đảo ngược thứ tự để hover từ trái sang phải */
+        gap: 0.25rem;
+    }
+
+    .star-rating {
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: #ccc;
+        transition: color 0.2s ease;
+    }
+
+    /* Hiệu ứng hover */
+    .stars-input .star-rating:hover,
+    .stars-input .star-rating:hover ~ .star-rating {
+        color: #ffc107;
+    }
+
+    /* Style cho sao đã chọn */
+    .star-rating.active {
+        color: #ffc107;
+    }
+
+    .stars-display .fa-star {
+        font-size: 1.2rem;
+    }
+</style>
+</body>
+</html>

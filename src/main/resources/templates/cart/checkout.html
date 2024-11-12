@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+  <title>Checkout</title>
+</head>
+<body>
+<div layout:fragment="content">
+  <div class="container mt-5">
+    <h2>Checkout</h2>
+
+    <!-- Order Summary -->
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Order Summary</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Price</th>
+                  <th>Quantity</th>
+                  <th>Subtotal</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${cart.items.values()}">
+                  <td th:text="${item.product.name}">Product Name</td>
+                  <td>$<span th:text="${#numbers.formatDecimal(item.product.price, 0, 'COMMA', 2, 'POINT')}">0.00</span></td>
+                  <td th:text="${item.quantity}">1</td>
+                  <td>$<span th:text="${#numbers.formatDecimal(item.subtotal, 0, 'COMMA', 2, 'POINT')}">0.00</span></td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr>
+                  <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                  <td>$<span th:text="${#numbers.formatDecimal(cart.total, 0, 'COMMA', 2, 'POINT')}">0.00</span></td>
+                </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Information Form -->
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Delivery Information</h5>
+          </div>
+          <div class="card-body">
+            <form th:action="@{/cart/checkout}" method="post">
+              <div class="mb-3">
+                <label for="phoneNumber" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="address" class="form-label">Delivery Address</label>
+                <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+              </div>
+
+              <div class="mb-3">
+                <label for="deliveryTime" class="form-label">Preferred Delivery Time</label>
+                <input type="datetime-local" class="form-control" id="deliveryTime" name="deliveryTime"
+                       th:min="${#temporals.format(#temporals.createNow().plusHours(2), 'yyyy-MM-dd''T''HH:mm')}"
+                       required>
+              </div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Place Order</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script th:inline="javascript">
+  // Set minimum delivery time to 2 hours from now
+  document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    now.setHours(now.getHours() + 2);
+    const minDateTime = now.toISOString().slice(0, 16);
+    document.getElementById('deliveryTime').min = minDateTime;
+  });
+</script>
+</body>
+</html>

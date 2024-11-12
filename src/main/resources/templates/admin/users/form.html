@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+    <title th:text="${user.id == null ? 'Create User' : 'Edit User'}">User Form</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 th:text="${user.id == null ? 'Create New User' : 'Edit User'}">User Form</h4>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="${user.id == null ? '/admin/users/create' : '/admin/users/edit/' + user.id}"
+                              th:object="${user}"
+                              method="post">
+
+                            <!-- Username -->
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="username"
+                                       th:field="*{username}"
+                                       th:classappend="${#fields.hasErrors('username')} ? 'is-invalid' : ''">
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('username')}"
+                                     th:errors="*{username}">
+                                    Username Error
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email"
+                                       class="form-control"
+                                       id="email"
+                                       th:field="*{email}"
+                                       th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''">
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('email')}"
+                                     th:errors="*{email}">
+                                    Email Error
+                                </div>
+                            </div>
+
+                            <!-- Password field -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    Password
+                                    <span th:if="${user.id != null}" class="text-muted">(Leave blank to keep current password)</span>
+                                </label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="password"
+                                       name="password"
+                                       th:field="*{password}"
+                                       th:required="${user.id == null}"> <!-- Chỉ bắt buộc khi tạo mới -->
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('password')}"
+                                     th:errors="*{password}">
+                                    Password Error
+                                </div>
+                            </div>
+
+                            <!-- Role Selection -->
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <select class="form-select"
+                                        id="role"
+                                        th:field="*{role}"
+                                        th:classappend="${#fields.hasErrors('role')} ? 'is-invalid' : ''">
+                                    <option th:each="roleOption : ${roles}"
+                                            th:value="${roleOption}"
+                                            th:text="${roleOption}">ROLE_USER</option>
+                                </select>
+                                <div class="invalid-feedback"
+                                     th:if="${#fields.hasErrors('role')}"
+                                     th:errors="*{role}">
+                                    Role Error
+                                </div>
+                            </div>
+
+                            <!-- Enabled Status -->
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           id="enabled"
+                                           th:field="*{enabled}">
+                                    <label class="form-check-label" for="enabled">
+                                        Account Enabled
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Submit and Back Buttons -->
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>
+                                    <span th:text="${user.id == null ? 'Create User' : 'Update User'}">
+                                        Submit
+                                    </span>
+                                </button>
+                                <a href="/admin/users" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional: Add custom JavaScript for form validation -->
+    <script th:inline="javascript">
+        // You can add custom form validation here if needed
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            });
+        });
+    </script>
+</div>
+</body>
+</html>

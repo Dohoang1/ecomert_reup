@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+  <title>Order Management</title>
+</head>
+<body>
+<div layout:fragment="content">
+  <div class="container mt-5">
+    <h2>Order Management</h2>
+
+    <!-- Status Filter -->
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <select class="form-select" id="statusFilter" onchange="filterByStatus(this.value)">
+          <option value="">All Orders</option>
+          <option th:each="status : ${statuses}"
+                  th:value="${status}"
+                  th:text="${status.displayValue}"
+                  th:selected="${status.name() == selectedStatus}">
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer</th>
+              <th>Order Date</th>
+              <th>Total Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="order : ${orders}">
+              <td th:text="${order.id}">123</td>
+              <td>
+                <a th:href="@{/admin/users/{id}(id=${order.user.id})}"
+                   th:text="${order.user.username}"
+                   class="text-decoration-none">
+                  username
+                </a>
+              </td>
+              <td th:text="${#temporals.format(order.orderTime, 'dd-MM-yyyy HH:mm')}">01-01-2024</td>
+              <td>$<span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 2, 'POINT')}">0.00</span></td>
+              <td>
+                                <span class="badge"
+                                      th:classappend="${order.status.name() == 'PENDING' ? 'bg-warning' :
+                                                      order.status.name() == 'SHIPPING' ? 'bg-info' :
+                                                      order.status.name() == 'DELIVERED' ? 'bg-success' :
+                                                      order.status.name() == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'}"
+                                      th:text="${order.status.displayValue}">
+                                    Status
+                                </span>
+              </td>
+              <td>
+                <div class="btn-group">
+                  <a th:href="@{/admin/orders/{id}(id=${order.id})}"
+                     class="btn btn-sm btn-info">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <button th:if="${order.status.name() == 'PENDING'}"
+                          class="btn btn-sm btn-success"
+                          th:onclick="'shipOrder(' + ${order.id} + ')'">
+                    <i class="fas fa-truck"></i>
+                  </button>
+                  <button th:if="${order.status.name() != 'DELIVERED' && order.status.name() != 'CANCELLED'}"
+                          class="btn btn-sm btn-danger"
+                          th:onclick="'cancelOrder(' + ${order.id} + ')'">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <nav th:if="${totalPages > 1}" aria-label="Page navigation">
+          <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+              <a class="page-link"
+                 th:href="@{/admin/orders(page=${currentPage - 1}, sortField=${sortField}, sortDir=${sortDir}, status=${selectedStatus})}"
+                 aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+
+            <li class="page-item"
+                th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                th:classappend="${currentPage == i} ? 'active'">
+              <a class="page-link"
+                 th:href="@{/admin/orders(page=${i}, sortField=${sortField}, sortDir=${sortDir}, status=${selectedStatus})}"
+                 th:text="${i + 1}">1</a>
+            </li>
+
+            <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+              <a class="page-link"
+                 th:href="@{/admin/orders(page=${currentPage + 1}, sortField=${sortField}, sortDir=${sortDir}, status=${selectedStatus})}"
+                 aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show mt-3">
+      <span th:text="${successMessage}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show mt-3">
+      <span th:text="${errorMessage}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  </div>
+</div>
+
+<th:block layout:fragment="scripts">
+  <script>
+    function filterByStatus(status) {
+      const url = new URL(window.location.href);
+      if (status) {
+        url.searchParams.set('status', status);
+      } else {
+        url.searchParams.delete('status');
+      }
+      window.location.href = url.toString();
+    }
+
+    function shipOrder(orderId) {
+      if (confirm('Are you sure you want to ship this order?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/orders/${orderId}/ship`;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+
+    function cancelOrder(orderId) {
+      if (confirm('Are you sure you want to cancel this order?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/orders/${orderId}/cancel`;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+
+    // Auto-hide alerts
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+          const bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        });
+      }, 5000);
+    });
+  </script>
+
+  <style>
+    .btn-group .btn {
+      margin-right: 5px;
+    }
+    .badge {
+      padding: 0.5em 0.8em;
+    }
+  </style>
+</th:block>
+</body>
+</html>

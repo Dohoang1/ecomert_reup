@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title layout:title-pattern="$CONTENT_TITLE - VGAKING">VGAKING</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <script th:inline="javascript">
+        function updatePendingOrdersCount() {
+            fetch('/api/orders/pending-count')
+                .then(response => response.json())
+                .then(count => {
+                    const badges = document.querySelectorAll('.pending-orders-badge');
+                    badges.forEach(badge => {
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.style.display = 'inline';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    });
+                });
+        }
+
+        // Cập nhật mỗi 30 giây
+        setInterval(updatePendingOrdersCount, 30000);
+    </script>
+
+    <style>
+        /* Chỉnh sửa style cho html và body */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background-image: url('/images/background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* Chỉnh sửa .content */
+        .content {
+            flex: 1 0 auto; /* Thay đổi từ flex: 1 thành flex: 1 0 auto */
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Chỉnh sửa footer */
+        .footer {
+            flex-shrink: 0; /* Thêm dòng này */
+            width: 100%;    /* Thêm dòng này */
+            background-color: #1a1a1a !important;
+            color: rgba(255, 255, 255, 0.75);
+            padding: 25px 0;
+            margin-top: auto; /* Thay đổi từ margin-top: 50px */
+        }
+        .navbar {
+            background-color: #1a1a1a !important;
+        }
+        .dropdown-item.position-relative {
+            padding-right: 2rem;
+        }
+
+        .dropdown-item .badge {
+            font-size: 0.75em;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/products">
+            <i class="fas fa-store me-2"></i>VGAKING
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- Left Menu Items - Đã xóa nút Home -->
+            <ul class="navbar-nav me-auto">
+            </ul>
+
+            <!-- Search Form -->
+            <form class="d-flex" th:action="@{/products}" method="get">
+                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="keyword" th:value="${keyword}">
+                <button class="btn btn-outline-light" type="submit">Search</button>
+            </form>
+
+            <!-- Right Menu Items -->
+            <ul class="navbar-nav ms-auto">
+                <!-- Show when not logged in -->
+                <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <a class="nav-link" th:href="@{/auth/register}">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                </li>
+                <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <a class="nav-link" th:href="@{/auth/login}">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                </li>
+
+                <!-- Cart Icon - Show when logged in -->
+                <li class="nav-item me-2" sec:authorize="isAuthenticated()">
+                    <a class="nav-link position-relative" href="/cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count">
+                            <span th:text="${@cart.itemCount}">0</span>
+                        </span>
+                    </a>
+                </li>
+
+                <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center position-relative"
+                       href="#"
+                       id="userDropdown"
+                       role="button"
+                       data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle user-icon"></i>
+                        <span sec:authentication="name">Username</span>
+                        <!-- Thêm badge cho admin khi có đơn hàng pending -->
+                        <span sec:authorize="hasRole('ADMIN')"
+                              th:if="${@orderService.countPendingOrders() > 0}"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger pending-orders-badge">
+            <span th:text="${@orderService.countPendingOrders()}">0</span>
+            <span class="visually-hidden">pending orders</span>
+        </span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li>
+                            <span class="dropdown-item-text">
+                                Signed in as <strong sec:authentication="name">Username</strong>
+                            </span>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+
+                        <!-- Admin Only Menu Items -->
+                        <li sec:authorize="hasRole('ADMIN')">
+                            <a class="dropdown-item" href="/products/create">
+                                <i class="fas fa-plus fa-fw"></i> Add Product
+                            </a>
+                            <a class="dropdown-item position-relative" href="/admin/orders">
+                                <i class="fas fa-clipboard-list fa-fw"></i> Check Orders
+                                <span th:if="${@orderService.countPendingOrders() > 0}"
+                                      class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            <span th:text="${@orderService.countPendingOrders()}">0</span>
+            <span class="visually-hidden">pending orders</span>
+        </span>
+                            </a>
+                            <a class="dropdown-item" href="/admin/users">
+                                <i class="fas fa-users fa-fw"></i> Manage Users
+                            </a>
+                        </li>
+                        <li sec:authorize="hasRole('ADMIN')"><hr class="dropdown-divider"></li>
+
+                        <!-- Logout -->
+                        <li>
+                            <form th:action="@{/logout}" method="post" class="dropdown-item p-0">
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="fas fa-sign-out-alt fa-fw"></i> Sign Out
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Content -->
+<div class="content">
+    <div layout:fragment="content">
+        <!-- Page content will be inserted here -->
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h5>About VGAKING</h5>
+                <p>Your trusted online shopping destination for quality products.</p>
+            </div>
+            <div class="col-md-4">
+                <h5>Quick Links</h5>
+                <ul class="list-unstyled">
+                    <li><a href="/products">Home</a></li>
+                    <li sec:authorize="hasRole('ADMIN')"><a href="/admin/dashboard">Dashboard</a></li>
+                    <li><a href="/contact">Contact Us</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h5>Contact Us</h5>
+                <p>
+                    <i class="fas fa-envelope me-2"></i>info@vgaking.com<br>
+                    <i class="fas fa-phone me-2"></i>(123) 456-7890
+                </p>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col text-center">
+                <p class="mb-0">&copy; 2024 VGAKING. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<th:block layout:fragment="scripts">
+    <!-- Additional page-specific scripts -->
+</th:block>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+  <title>Order Detail</title>
+</head>
+<body>
+<div layout:fragment="content">
+  <div class="container mt-5">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/admin/orders">Orders</a></li>
+        <li class="breadcrumb-item active">Order #<span th:text="${order.id}"></span></li>
+      </ol>
+    </nav>
+
+    <div class="row">
+      <!-- Order Information -->
+      <div class="col-md-6">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Order Information</h5>
+          </div>
+          <div class="card-body">
+            <table class="table table-borderless">
+              <tr>
+                <th>Order ID:</th>
+                <td th:text="${order.id}"></td>
+              </tr>
+              <tr>
+                <th>Status:</th>
+                <td>
+                                    <span class="badge"
+                                          th:classappend="${order.status.name() == 'PENDING' ? 'bg-warning' :
+                                                          order.status.name() == 'SHIPPING' ? 'bg-info' :
+                                                          order.status.name() == 'DELIVERED' ? 'bg-success' :
+                                                          order.status.name() == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'}"
+                                          th:text="${order.status.displayValue}">
+                                    </span>
+                </td>
+              </tr>
+              <tr>
+                <th>Order Date:</th>
+                <td th:text="${#temporals.format(order.orderTime, 'dd-MM-yyyy HH:mm')}"></td>
+              </tr>
+              <tr>
+                <th>Total Amount:</th>
+                <td>$<span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 2, 'POINT')}"></span></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Information -->
+      <div class="col-md-6">
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Customer Information</h5>
+          </div>
+          <div class="card-body">
+            <table class="table table-borderless">
+              <tr>
+                <th>Customer:</th>
+                <td th:text="${order.user.username}"></td>
+              </tr>
+              <tr>
+                <th>Phone:</th>
+                <td th:text="${order.phoneNumber}"></td>
+              </tr>
+              <tr>
+                <th>Address:</th>
+                <td th:text="${order.address}"></td>
+              </tr>
+              <tr>
+                <th>Delivery Time:</th>
+                <td th:text="${#temporals.format(order.deliveryTime, 'dd-MM-yyyy HH:mm')}"></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Order Items</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+            <tr>
+              <th>Product</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Subtotal</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${order.items}">
+              <td>
+                <div class="d-flex align-items-center">
+                  <img th:if="${item.product.imagePath}"
+                       th:src="${item.product.imagePath}"
+                       class="img-thumbnail me-3"
+                       style="width: 50px;"
+                       alt="Product Image">
+                  <span th:text="${item.product.name}">Product Name</span>
+                </div>
+              </td>
+              <td>$<span th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 2, 'POINT')}"></span></td>
+              <td th:text="${item.quantity}"></td>
+              <td>$<span th:text="${#numbers.formatDecimal(item.price * item.quantity, 0, 'COMMA', 2, 'POINT')}"></span></td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+              <td colspan="3" class="text-end"><strong>Total:</strong></td>
+              <td>$<span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 2, 'POINT')}"></span></td>
+            </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-4">
+      <a href="/admin/orders" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Orders
+      </a>
+      <button th:if="${order.status.name() == 'PENDING'}"
+              class="btn btn-success"
+              th:onclick="'shipOrder(' + ${order.id} + ')'">
+        <i class="fas fa-truck"></i> Ship Order
+      </button>
+      <button th:if="${order.status.name() != 'DELIVERED' && order.status.name() != 'CANCELLED'}"
+              class="btn btn-danger"
+              th:onclick="'cancelOrder(' + ${order.id} + ')'">
+        <i class="fas fa-times"></i> Cancel Order
+      </button>
+    </div>
+  </div>
+</div>
+
+<th:block layout:fragment="scripts">
+  <script th:inline="javascript">
+    function shipOrder(orderId) {
+      if (confirm('Are you sure you want to ship this order?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/orders/${orderId}/ship`;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+
+    function cancelOrder(orderId) {
+      if (confirm('Are you sure you want to cancel this order?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/orders/${orderId}/cancel`;
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+  </script>
+</th:block>
+</body>
+</html>

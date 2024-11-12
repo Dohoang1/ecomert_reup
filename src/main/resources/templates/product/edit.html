@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+    <title>Edit Product</title>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0">Edit Product</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- Alert Messages -->
+                        <div th:if="${successMessage}" class="alert alert-success" role="alert">
+                            <span th:text="${successMessage}"></span>
+                        </div>
+                        <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                            <span th:text="${errorMessage}"></span>
+                        </div>
+
+                        <!-- Edit Form -->
+                        <form th:action="@{/products/edit/{id}(id=${product.id})}"
+                              th:object="${product}"
+                              method="post"
+                              enctype="multipart/form-data">
+
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Product Name</label>
+                                <input type="text" class="form-control" id="name" th:field="*{name}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="brand" class="form-label">Brand</label>
+                                <input type="text" class="form-control" id="brand" th:field="*{brand}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="price" class="form-label">Price</label>
+                                <input type="number" class="form-control" id="price" th:field="*{price}" step="0.01" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="stock" class="form-label">Stock</label>
+                                <input type="number" class="form-control" id="stock" th:field="*{stock}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" th:field="*{description}" rows="3"></textarea>
+                            </div>
+
+                            <!-- Current Image Preview -->
+                            <div class="mb-3">
+                                <label class="form-label">Current Image</label>
+                                <div class="mb-2">
+                                    <img th:if="${product.imagePath}"
+                                         th:src="${product.imagePath}"
+                                         class="img-thumbnail"
+                                         style="max-height: 200px;"
+                                         alt="Current Image">
+                                    <img th:unless="${product.imagePath}"
+                                         src="/images/default-product.jpg"
+                                         class="img-thumbnail"
+                                         style="max-height: 200px;"
+                                         alt="Default Image">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="imageFile" class="form-label">Change Image</label>
+                                <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*">
+                                <small class="text-muted">Leave empty to keep current image</small>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Update Product</button>
+                                <a th:href="@{/products/{id}(id=${product.id})}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
